@@ -452,6 +452,62 @@ class Scorecard(Base, BaseEstimator):
 
         return self._df_scorecard[columns]
 
+    def to_sql(self):
+        """Scorecard representation in SQL.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        sql : str
+            The scorecard representation in SQL.
+        """
+        self._check_is_fitted()
+        
+        sc = self.table()
+        fld = ""
+        sql = "SELECT [PrimaryKey], InitialScore = " + str(self.intercept_) + ",\n"
+        for index, row in sc.iterrows():    
+            cur = row["Variable"]
+            sbin = row["Bin"]
+            suppress = False
+            if isinstance(sbin, np.ndarray):
+                sbin = "IN ('" + "','".join(str(x) for x in sbin) + "')"
+            elif isinstance(sbin, str):
+                if sbin == "Special":
+                    special_codes = self.binning_process_.special_codes
+                    if special_codes is None:
+                        suppress = True
+                    else:
+                        if all(isinstance(x, str) for x in special_codes):
+                            sbin = "IN ('" + "','".join(str(x) for x in special_codes) + "')"
+                        else:
+                            sbin = "IN (" + ",".join(str(x) for x in special_codes) + ")"
+                elif sbin == "Missing":
+                    sbin = "IS NULL"
+                else:
+                    if sbin.find("(-inf") != -1:
+                        sbin = sbin.replace("(-inf,", "<").replace(")", "")
+                    else:
+                        sbin = sbin.replace(", inf)", "").replace("(", "> ").replace("[", ">= ").replace(")", " < " + cur).replace(",", " AND")
+                
+            spoint = str(row["Points"])
+            
+            if not suppress:
+                if fld == cur:
+                    sql = sql + "\n\tWHEN " + cur + " " + sbin + " THEN " + spoint
+                else:
+                    if fld == "":
+                        sql = sql + "CASE\n\tWHEN " + cur + " " + sbin + " THEN " + spoint
+                    else:
+                        sql = sql + "\nEND AS " + fld + "_score,\nCASE\n\tWHEN " + cur + " " + sbin + " THEN " + spoint
+            
+            fld = cur
+
+        sql = sql + "\nEND AS " + cur + "_score\nFROM [tablename];"
+        return sql
+ 
     @classmethod
     def load(cls, path):
         """Load scorecard from pickle file.
