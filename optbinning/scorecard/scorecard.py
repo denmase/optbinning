@@ -13,6 +13,10 @@ import time
 import numpy as np
 import pandas as pd
 
+import xml.etree.ElementTree as ET
+from datetime import datetime
+import re
+
 from sklearn.base import BaseEstimator
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
@@ -503,6 +507,209 @@ class Scorecard(Base, BaseEstimator):
         }
         return pd.DataFrame(score_)
 
+    def to_sql(self, table_name="[tablename]", primary_key="[PrimaryKey]"):
+        """
+        Scorecard representation in SQL with Total Score calculation.
+        Uses CTE for better readability and performance.
+        """
+        self._check_is_fitted()
+        
+        sc_df = self.table()
+        sc_df = sc_df.sort_values(by="Variable")
+        variables = sc_df["Variable"].unique()
+        
+        # 1. Start CTE Definition
+        sql_lines = ["WITH ScorecardBase AS (", "  SELECT"]
+        sql_lines.append(f"    {primary_key},")
+        sql_lines.append(f"    {self.intercept_:.6f} AS InitialScore,")
+    
+        score_columns = ["InitialScore"]
+    
+        # 2. Generate CASE WHEN for each variable
+        for var in variables:
+            var_bins = sc_df[sc_df["Variable"] == var]
+            col_name = f"{var}_score"
+            score_columns.append(col_name)
+            
+            case_segments = [f"    CASE -- {var}"]
+            
+            for _, row in var_bins.iterrows():
+                sbin = row["Bin"]
+                points = row["Points"]
+                
+                # Logic parsing bin (Sama seperti versi sebelumnya)
+                if sbin == "Missing":
+                    cond = f"{var} IS NULL"
+                elif sbin == "Special":
+                    codes = self.binning_process_.special_codes
+                    if not codes: continue
+                    fmt = ", ".join([f"'{x}'" if isinstance(x, str) else str(x) for x in codes])
+                    cond = f"{var} IN ({fmt})"
+                elif isinstance(sbin, (np.ndarray, list)):
+                    fmt = ", ".join([f"'{x}'" for x in sbin])
+                    cond = f"{var} IN ({fmt})"
+                else:
+                    clean_bin = re.sub(r'[\[\]\(\)]', '', sbin)
+                    if "inf" in sbin:
+                        if "-inf" in sbin:
+                            val = clean_bin.replace("-inf,", "").strip()
+                            op = "<=" if "]" in sbin else "<"
+                            cond = f"{var} {op} {val}"
+                        else:
+                            val = clean_bin.replace(",inf", "").strip()
+                            op = ">=" if "[" in sbin else ">"
+                            cond = f"{var} {op} {val}"
+                    else:
+                        low, high = clean_bin.split(",")
+                        op_l = ">=" if "[" in sbin else ">"
+                        op_h = "<=" if "]" in sbin else "<"
+                        cond = f"{var} {op_l} {low.strip()} AND {var} {op_h} {high.strip()}"
+    
+                case_segments.append(f"      WHEN {cond} THEN {points:.6f}")
+            
+            case_segments.append(f"      ELSE 0 \n    END AS {col_name},")
+            sql_lines.append("\n".join(case_segments))
+    
+        # Hapus koma terakhir di kolom terakhir CTE
+        sql_lines[-1] = sql_lines[-1].rstrip(",")
+        sql_lines.append(f"  FROM {table_name}")
+        sql_lines.append(")")
+    
+        # 3. Final Selection & Total Score Calculation
+        sql_lines.append("SELECT")
+        sql_lines.append("  *,")
+        # Menjumlahkan semua kolom score
+        total_score_formula = " + ".join(score_columns)
+        sql_lines.append(f"  ({total_score_formula}) AS TotalScore")
+        sql_lines.append("FROM ScorecardBase;")
+    
+        return "\n".join(sql_lines)
+      
+    def to_pmml(self, X_verify=None, file_path="model_scorecard.pmml"):
+        self._check_is_fitted()
+        sc_df = self.table()
+        variables = sc_df["Variable"].unique()
+    
+        # --- 1. Root & Namespace ---
+        root = ET.Element("PMML", version="4.4", xmlns="http://www.dmg.org/PMML-4_4")
+        
+        # --- 2. Header ---
+        header = ET.SubElement(root, "Header", copyright="Optbinning User")
+        ET.SubElement(header, "Timestamp").text = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    
+        # --- 3. Data Dictionary ---
+        data_dict = ET.SubElement(root, "DataDictionary", numberOfFields=str(len(variables)))
+        for var in variables:
+            # Default ke double, bisa disesuaikan jika tahu tipe data aslinya
+            ET.SubElement(data_dict, "DataField", name=var, optype="continuous", dataType="double")
+    
+        # --- 4. Scorecard Setup ---
+        # Intercept di optbinning = initialScore di PMML
+        initial_score = str(self.intercept_)
+        
+        # Handle Scaling (Points to Odds, etc)
+        # Jika menggunakan scaling_method, PMML biasanya menggunakan Regression sebagai pembungkus 
+        # atau menaruhnya di elemen Output. Di sini kita asumsikan standard scorecard.
+        scorecard = ET.SubElement(root, "Scorecard", 
+                                  modelName="OptbinningScorecard", 
+                                  functionName="regression", 
+                                  initialScore=initial_score,
+                                  useReasonCodes="true",
+                                  reasonCodeAlgorithm="pointsAbove") # atau pointsBelow
+    
+        # Mining Schema
+        mining_schema = ET.SubElement(scorecard, "MiningSchema")
+        for var in variables:
+            ET.SubElement(mining_schema, "MiningField", name=var)
+    
+        # --- 5. Characteristics ---
+        characteristics = ET.SubElement(scorecard, "Characteristics")
+    
+        # Regex untuk parsing interval: [low, high)
+        # Mendukung: integer, float, scientific notation, inf
+        num_pattern = r"([\[\(\]])\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|-?inf)\s*,\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|-?inf)\s*([\]\)])"
+    
+        for var in variables:
+            # Reason Code biasanya menggunakan nama variabel jika tidak didefinisikan
+            char = ET.SubElement(characteristics, "Characteristic", name=var, reasonCode=f"RC_{var}")
+            var_data = sc_df[sc_df["Variable"] == var]
+            
+            for _, row in var_data.iterrows():
+                attr = ET.SubElement(char, "Attribute", partialScore=str(row["Points"]))
+                sbin = str(row["Bin"])
+    
+                # Logic: Missing
+                if sbin == "Missing":
+                    ET.SubElement(attr, "SimplePredicate", field=var, operator="isMissing")
+                
+                # Logic: Special
+                elif sbin == "Special":
+                    # Jika ada daftar nilai spesial di binning_process
+                    specials = self.binning_process_.special_codes
+                    if specials:
+                        vals = " ".join([f'"{x}"' for x in specials])
+                        ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIncluded").text = f"<Array type='string'>{vals}</Array>"
+                    else:
+                        ET.SubElement(attr, "SimplePredicate", field=var, operator="equal", value="special")
+    
+                # Logic: Categorical (List/Array)
+                elif "[" in sbin and "," in sbin and not re.search(r'\d', sbin):
+                    # Deteksi sederhana untuk list kategori string
+                    items = sbin.replace("[", "").replace("]", "").split(",")
+                    vals = " ".join([f'"{i.strip()}"' for i in items])
+                    ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIncluded").text = f"<Array type='string'>{vals}</Array>"
+    
+                # Logic: Numerical Intervals
+                else:
+                    match = re.search(num_pattern, sbin)
+                    if match:
+                        left_bracket, low, high, right_bracket = match.groups()
+                        
+                        # Case: (-inf, X]
+                        if "-inf" in low:
+                            op = "lessOrEqual" if right_bracket == "]" else "lessThan"
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator=op, value=high)
+                        
+                        # Case: [X, inf)
+                        elif "inf" in high:
+                            op = "greaterOrEqual" if left_bracket == "[" else "greaterThan"
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator=op, value=low)
+                        
+                        # Case: [X, Y)
+                        else:
+                            compound = ET.SubElement(attr, "CompoundPredicate", booleanOperator="and")
+                            op_low = "greaterOrEqual" if left_bracket == "[" else "greaterThan"
+                            op_high = "lessOrEqual" if right_bracket == "]" else "lessThan"
+                            ET.SubElement(compound, "SimplePredicate", field=var, operator=op_low, value=low)
+                            ET.SubElement(compound, "SimplePredicate", field=var, operator=op_high, value=high)
+    
+        # --- 6. Model Verification ---
+        if X_verify is not None:
+            mv = ET.SubElement(scorecard, "ModelVerification")
+            # Ambil 5 record pertama untuk verifikasi
+            verify_data = X_verify.head(5)
+            scores = self.score(verify_data) # Prediksi skor dari model asli
+            
+            v_fields = ET.SubElement(mv, "VerificationFields")
+            for col in verify_data.columns:
+                ET.SubElement(v_fields, "VerificationField", field=col)
+            ET.SubElement(v_fields, "VerificationField", field="FinalScore", column="FinalScore")
+    
+            v_inline = ET.SubElement(mv, "InlineTable")
+            for i, (idx, row) in enumerate(verify_data.iterrows()):
+                row_elem = ET.SubElement(v_inline, "row")
+                for col in verify_data.columns:
+                    ET.SubElement(row_elem, col).text = str(row[col])
+                ET.SubElement(row_elem, "FinalScore").text = str(scores[i])
+    
+        # Save
+        tree = ET.ElementTree(root)
+        # Pretty print hack
+        from xml.dom import minidom
+        xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent="   ")
+        with open(file_path, "w") as f:
+            f.write(xmlstr)
+      
     @classmethod
     def load(cls, path):
         """Load scorecard from pickle file.
