@@ -1,18 +1,4 @@
 ```
-# Distribution / packaging
-*.egg-info/
-*.egg
-*.pyc
 __pycache__/
-
-# Logs
-*.log
-
-# Environment variables
-.env
-.env.local
-*.env.*
-
-# Test data (if not needed in version control)
-test/data/
+*.pyc
 ```

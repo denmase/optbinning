@@ -537,33 +537,51 @@ class Scorecard(Base, BaseEstimator):
                 sbin = row["Bin"]
                 points = row["Points"]
                 
-                # Logic parsing bin (Same as previous version)
-                if sbin == "Missing":
+                # Logic parsing bin - handle numpy arrays properly
+                if isinstance(sbin, np.ndarray):
+                    # Array format: categorical values like ['<0'] or ['no checking']
+                    # These should be treated as IN clause
+                    fmt = ", ".join([self._escape_sql_value(str(x)) for x in sbin])
+                    cond = f"{var} IN ({fmt})"
+                elif isinstance(sbin, list):
+                    # List format: also categorical
+                    fmt = ", ".join([self._escape_sql_value(str(x)) for x in sbin])
+                    cond = f"{var} IN ({fmt})"
+                elif sbin == "Missing":
                     cond = f"{var} IS NULL"
                 elif sbin == "Special":
                     codes = self.binning_process_.special_codes
                     if not codes: continue
                     fmt = ", ".join([self._escape_sql_value(x) for x in codes])
                     cond = f"{var} IN ({fmt})"
-                elif isinstance(sbin, (np.ndarray, list)):
-                    fmt = ", ".join([self._escape_sql_value(x) for x in sbin])
-                    cond = f"{var} IN ({fmt})"
                 else:
-                    clean_bin = re.sub(r'[\[\]\(\)]', '', sbin)
-                    if "inf" in sbin:
-                        if "-inf" in sbin:
-                            val = clean_bin.replace("-inf,", "").strip()
-                            op = "<=" if "]" in sbin else "<"
-                            cond = f"{var} {op} {val}"
+                    # String bin (interval format like '(-inf, 11.50)' or '[11.50, 17.00)')
+                    # First check if it's a proper interval with brackets/parens
+                    if any(c in sbin for c in '[]()'):
+                        clean_bin = re.sub(r'[\[\]\(\)]', '', sbin)
+                        if "inf" in sbin:
+                            if "-inf" in sbin:
+                                val = clean_bin.replace("-inf,", "").strip()
+                                op = "<=" if "]" in sbin else "<"
+                                cond = f"{var} {op} {val}"
+                            else:
+                                val = clean_bin.replace(",inf", "").strip()
+                                op = ">=" if "[" in sbin else ">"
+                                cond = f"{var} {op} {val}"
                         else:
-                            val = clean_bin.replace(",inf", "").strip()
-                            op = ">=" if "[" in sbin else ">"
-                            cond = f"{var} {op} {val}"
+                            parts = clean_bin.split(",")
+                            if len(parts) == 2:
+                                low, high = parts
+                                op_l = ">=" if "[" in sbin else ">"
+                                op_h = "<=" if "]" in sbin else "<"
+                                cond = f"{var} {op_l} {low.strip()} AND {var} {op_h} {high.strip()}"
+                            else:
+                                safe_val = self._escape_sql_value(sbin)
+                                cond = f"{var} = {safe_val}"
                     else:
-                        low, high = clean_bin.split(",")
-                        op_l = ">=" if "[" in sbin else ">"
-                        op_h = "<=" if "]" in sbin else "<"
-                        cond = f"{var} {op_l} {low.strip()} AND {var} {op_h} {high.strip()}"
+                        # Not an interval format, treat as categorical value
+                        safe_val = self._escape_sql_value(sbin)
+                        cond = f"{var} = {safe_val}"
     
                 case_segments.append(f"      WHEN {cond} THEN {points:.6f}")
             
