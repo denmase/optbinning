@@ -543,10 +543,10 @@ class Scorecard(Base, BaseEstimator):
                 elif sbin == "Special":
                     codes = self.binning_process_.special_codes
                     if not codes: continue
-                    fmt = ", ".join([f"'{x}'" if isinstance(x, str) else str(x) for x in codes])
+                    fmt = ", ".join([self._escape_sql_value(x) for x in codes])
                     cond = f"{var} IN ({fmt})"
                 elif isinstance(sbin, (np.ndarray, list)):
-                    fmt = ", ".join([f"'{x}'" for x in sbin])
+                    fmt = ", ".join([self._escape_sql_value(x) for x in sbin])
                     cond = f"{var} IN ({fmt})"
                 else:
                     clean_bin = re.sub(r'[\[\]\(\)]', '', sbin)
@@ -584,6 +584,16 @@ class Scorecard(Base, BaseEstimator):
         sql_lines.append("FROM ScorecardBase;")
     
         return "\n".join(sql_lines)
+
+    def _escape_sql_value(self, val):
+        """Escape value for SQL query to handle quotes and special characters."""
+        if val is None:
+            return "NULL"
+        if isinstance(val, str):
+            # Escape single quotes by doubling them
+            escaped = val.replace("'", "''")
+            return f"'{escaped}'"
+        return str(val)
       
     def to_pmml(self, X_verify=None, file_path=None):
         """Export scorecard to PMML format.
