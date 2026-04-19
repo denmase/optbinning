@@ -1,0 +1,540 @@
+<?xml version="1.0" ?>
+<PMML xmlns="http://www.dmg.org/PMML-4_4" version="4.4">
+   <Header copyright="Optbinning User">
+      <Timestamp>2026-04-19T06:49:40</Timestamp>
+   </Header>
+   <DataDictionary numberOfFields="20">
+      <DataField name="checking_status" optype="categorical" dataType="string"/>
+      <DataField name="duration" optype="continuous" dataType="double"/>
+      <DataField name="credit_history" optype="categorical" dataType="string"/>
+      <DataField name="purpose" optype="categorical" dataType="string"/>
+      <DataField name="credit_amount" optype="continuous" dataType="double"/>
+      <DataField name="savings_status" optype="categorical" dataType="string"/>
+      <DataField name="employment" optype="categorical" dataType="string"/>
+      <DataField name="installment_commitment" optype="continuous" dataType="double"/>
+      <DataField name="personal_status" optype="categorical" dataType="string"/>
+      <DataField name="other_parties" optype="categorical" dataType="string"/>
+      <DataField name="residence_since" optype="continuous" dataType="double"/>
+      <DataField name="property_magnitude" optype="categorical" dataType="string"/>
+      <DataField name="age" optype="continuous" dataType="double"/>
+      <DataField name="other_payment_plans" optype="categorical" dataType="string"/>
+      <DataField name="housing" optype="categorical" dataType="string"/>
+      <DataField name="existing_credits" optype="continuous" dataType="double"/>
+      <DataField name="job" optype="categorical" dataType="string"/>
+      <DataField name="num_dependents" optype="continuous" dataType="double"/>
+      <DataField name="own_telephone" optype="categorical" dataType="string"/>
+      <DataField name="foreign_worker" optype="categorical" dataType="string"/>
+   </DataDictionary>
+   <Scorecard modelName="OptbinningScorecard" functionName="regression" initialScore="0" useReasonCodes="true" reasonCodeAlgorithm="pointsAbove">
+      <MiningSchema>
+         <MiningField name="checking_status"/>
+         <MiningField name="duration"/>
+         <MiningField name="credit_history"/>
+         <MiningField name="purpose"/>
+         <MiningField name="credit_amount"/>
+         <MiningField name="savings_status"/>
+         <MiningField name="employment"/>
+         <MiningField name="installment_commitment"/>
+         <MiningField name="personal_status"/>
+         <MiningField name="other_parties"/>
+         <MiningField name="residence_since"/>
+         <MiningField name="property_magnitude"/>
+         <MiningField name="age"/>
+         <MiningField name="other_payment_plans"/>
+         <MiningField name="housing"/>
+         <MiningField name="existing_credits"/>
+         <MiningField name="job"/>
+         <MiningField name="num_dependents"/>
+         <MiningField name="own_telephone"/>
+         <MiningField name="foreign_worker"/>
+      </MiningSchema>
+      <Characteristics>
+         <Characteristic name="checking_status" reasonCode="RC_checking_status">
+            <Attribute partialScore="105.89695498777382">
+               <SimplePredicate field="checking_status" operator="equal" value="no checking"/>
+            </Attribute>
+            <Attribute partialScore="61.82149324967495">
+               <SimplePredicate field="checking_status" operator="equal" value="&gt;=200"/>
+            </Attribute>
+            <Attribute partialScore="15.684133365848826">
+               <SimplePredicate field="checking_status" operator="equal" value="0&lt;=X&lt;200"/>
+            </Attribute>
+            <Attribute partialScore="-8.143831035132173">
+               <SimplePredicate field="checking_status" operator="equal" value="&lt;0"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="checking_status" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="checking_status" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="duration" reasonCode="RC_duration">
+            <Attribute partialScore="108.59380066244017">
+               <SimplePredicate field="duration" operator="lessThan" value="8.50"/>
+            </Attribute>
+            <Attribute partialScore="68.87063471614235">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="duration" operator="greaterOrEqual" value="8.50"/>
+                  <SimplePredicate field="duration" operator="lessThan" value="11.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="53.235592280052344">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="duration" operator="greaterOrEqual" value="11.50"/>
+                  <SimplePredicate field="duration" operator="lessThan" value="15.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="33.38091644232203">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="duration" operator="greaterOrEqual" value="15.50"/>
+                  <SimplePredicate field="duration" operator="lessThan" value="26.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="28.83478801667893">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="duration" operator="greaterOrEqual" value="26.50"/>
+                  <SimplePredicate field="duration" operator="lessThan" value="34.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="9.989759033770333">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="duration" operator="greaterOrEqual" value="34.50"/>
+                  <SimplePredicate field="duration" operator="lessThan" value="43.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="-23.3499063587953">
+               <SimplePredicate field="duration" operator="greaterOrEqual" value="43.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="duration" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="duration" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="credit_history" reasonCode="RC_credit_history">
+            <Attribute partialScore="75.61556537745051">
+               <SimplePredicate field="credit_history" operator="equal" value="critical/other existing credit"/>
+            </Attribute>
+            <Attribute partialScore="34.3445525924403">
+               <SimplePredicate field="credit_history" operator="equal" value="delayed previously"/>
+            </Attribute>
+            <Attribute partialScore="34.18525349511163">
+               <SimplePredicate field="credit_history" operator="equal" value="existing paid"/>
+            </Attribute>
+            <Attribute partialScore="-23.558607372839454">
+               <SimpleSetPredicate field="credit_history" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>all paid</Value>
+                     <Value>no credits/all paid</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="credit_history" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="credit_history" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="purpose" reasonCode="RC_purpose">
+            <Attribute partialScore="93.14232934029188">
+               <SimpleSetPredicate field="purpose" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>retraining</Value>
+                     <Value>used car</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="66.37986883790974">
+               <SimplePredicate field="purpose" operator="equal" value="radio/tv"/>
+            </Attribute>
+            <Attribute partialScore="31.922441947302804">
+               <SimpleSetPredicate field="purpose" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>furniture/equipment</Value>
+                     <Value>domestic appliance</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="23.039873493223418">
+               <SimplePredicate field="purpose" operator="equal" value="business"/>
+            </Attribute>
+            <Attribute partialScore="14.746443616530755">
+               <SimpleSetPredicate field="purpose" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>repairs</Value>
+                     <Value>new car</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="-1.1313783366513235">
+               <SimpleSetPredicate field="purpose" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>other</Value>
+                     <Value>education</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="purpose" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="purpose" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="credit_amount" reasonCode="RC_credit_amount">
+            <Attribute partialScore="30.55320268714771">
+               <SimplePredicate field="credit_amount" operator="lessThan" value="954.50"/>
+            </Attribute>
+            <Attribute partialScore="36.14430155222787">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="954.50"/>
+                  <SimplePredicate field="credit_amount" operator="lessThan" value="1373.00"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="56.98442708699227">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="1373.00"/>
+                  <SimplePredicate field="credit_amount" operator="lessThan" value="3446.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="138.12621441237852">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="3446.50"/>
+                  <SimplePredicate field="credit_amount" operator="lessThan" value="3913.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="16.24044553391074">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="3913.50"/>
+                  <SimplePredicate field="credit_amount" operator="lessThan" value="6322.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="15.870206324156545">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="6322.50"/>
+                  <SimplePredicate field="credit_amount" operator="lessThan" value="7839.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="-27.740125160708587">
+               <SimplePredicate field="credit_amount" operator="greaterOrEqual" value="7839.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="credit_amount" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="credit_amount" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="savings_status" reasonCode="RC_savings_status">
+            <Attribute partialScore="85.56129751054101">
+               <SimpleSetPredicate field="savings_status" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>&gt;=1000</Value>
+                     <Value>500&lt;=X&lt;1000</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="76.93878351271849">
+               <SimplePredicate field="savings_status" operator="equal" value="no known savings"/>
+            </Attribute>
+            <Attribute partialScore="31.04642695789805">
+               <SimplePredicate field="savings_status" operator="equal" value="100&lt;=X&lt;500"/>
+            </Attribute>
+            <Attribute partialScore="23.877783955596218">
+               <SimplePredicate field="savings_status" operator="equal" value="&lt;100"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="savings_status" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="savings_status" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="employment" reasonCode="RC_employment">
+            <Attribute partialScore="55.92259485995204">
+               <SimplePredicate field="employment" operator="equal" value="4&lt;=X&lt;7"/>
+            </Attribute>
+            <Attribute partialScore="48.9606291710185">
+               <SimplePredicate field="employment" operator="equal" value="&gt;=7"/>
+            </Attribute>
+            <Attribute partialScore="37.229348234860595">
+               <SimplePredicate field="employment" operator="equal" value="1&lt;=X&lt;4"/>
+            </Attribute>
+            <Attribute partialScore="24.64527729656011">
+               <SimplePredicate field="employment" operator="equal" value="unemployed"/>
+            </Attribute>
+            <Attribute partialScore="18.001470510854915">
+               <SimplePredicate field="employment" operator="equal" value="&lt;1"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="employment" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="employment" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="installment_commitment" reasonCode="RC_installment_commitment">
+            <Attribute partialScore="63.77923657499993">
+               <SimplePredicate field="installment_commitment" operator="lessThan" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="54.19007761398693">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="installment_commitment" operator="greaterOrEqual" value="1.50"/>
+                  <SimplePredicate field="installment_commitment" operator="lessThan" value="2.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="45.09314365979732">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="installment_commitment" operator="greaterOrEqual" value="2.50"/>
+                  <SimplePredicate field="installment_commitment" operator="lessThan" value="3.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="22.89916437849147">
+               <SimplePredicate field="installment_commitment" operator="greaterOrEqual" value="3.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="installment_commitment" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="installment_commitment" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="personal_status" reasonCode="RC_personal_status">
+            <Attribute partialScore="49.20921746008783">
+               <SimplePredicate field="personal_status" operator="equal" value="male single"/>
+            </Attribute>
+            <Attribute partialScore="47.48300421627723">
+               <SimplePredicate field="personal_status" operator="equal" value="male mar/wid"/>
+            </Attribute>
+            <Attribute partialScore="23.606075494687833">
+               <SimplePredicate field="personal_status" operator="equal" value="female div/dep/mar"/>
+            </Attribute>
+            <Attribute partialScore="10.418262271923545">
+               <SimplePredicate field="personal_status" operator="equal" value="male div/sep"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="personal_status" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="personal_status" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="other_parties" reasonCode="RC_other_parties">
+            <Attribute partialScore="83.89384449442387">
+               <SimplePredicate field="other_parties" operator="equal" value="guarantor"/>
+            </Attribute>
+            <Attribute partialScore="36.48246619470944">
+               <SimpleSetPredicate field="other_parties" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>none</Value>
+                     <Value>co applicant</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="other_parties" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="other_parties" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="residence_since" reasonCode="RC_residence_since">
+            <Attribute partialScore="45.323388028576936">
+               <SimplePredicate field="residence_since" operator="lessThan" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="37.6633051331112">
+               <SimplePredicate field="residence_since" operator="greaterOrEqual" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="residence_since" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="residence_since" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="property_magnitude" reasonCode="RC_property_magnitude">
+            <Attribute partialScore="49.80014322417614">
+               <SimplePredicate field="property_magnitude" operator="equal" value="real estate"/>
+            </Attribute>
+            <Attribute partialScore="37.94446014365513">
+               <SimplePredicate field="property_magnitude" operator="equal" value="life insurance"/>
+            </Attribute>
+            <Attribute partialScore="37.80842255606862">
+               <SimplePredicate field="property_magnitude" operator="equal" value="car"/>
+            </Attribute>
+            <Attribute partialScore="24.444587988127097">
+               <SimplePredicate field="property_magnitude" operator="equal" value="no known property"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="property_magnitude" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="property_magnitude" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="age" reasonCode="RC_age">
+            <Attribute partialScore="13.753542408078896">
+               <SimplePredicate field="age" operator="lessThan" value="25.50"/>
+            </Attribute>
+            <Attribute partialScore="35.339582792872434">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="age" operator="greaterOrEqual" value="25.50"/>
+                  <SimplePredicate field="age" operator="lessThan" value="29.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="36.25508664339599">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="age" operator="greaterOrEqual" value="29.50"/>
+                  <SimplePredicate field="age" operator="lessThan" value="34.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="79.68806585854628">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="age" operator="greaterOrEqual" value="34.50"/>
+                  <SimplePredicate field="age" operator="lessThan" value="36.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="56.58019842437769">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="age" operator="greaterOrEqual" value="36.50"/>
+                  <SimplePredicate field="age" operator="lessThan" value="38.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="51.588059294016205">
+               <CompoundPredicate booleanOperator="and">
+                  <SimplePredicate field="age" operator="greaterOrEqual" value="38.50"/>
+                  <SimplePredicate field="age" operator="lessThan" value="52.50"/>
+               </CompoundPredicate>
+            </Attribute>
+            <Attribute partialScore="38.17049529501049">
+               <SimplePredicate field="age" operator="greaterOrEqual" value="52.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="age" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="age" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="other_payment_plans" reasonCode="RC_other_payment_plans">
+            <Attribute partialScore="44.5164339428472">
+               <SimplePredicate field="other_payment_plans" operator="equal" value="none"/>
+            </Attribute>
+            <Attribute partialScore="15.463642844142562">
+               <SimpleSetPredicate field="other_payment_plans" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>stores</Value>
+                     <Value>bank</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="other_payment_plans" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="other_payment_plans" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="housing" reasonCode="RC_housing">
+            <Attribute partialScore="43.417753478735364">
+               <SimplePredicate field="housing" operator="equal" value="own"/>
+            </Attribute>
+            <Attribute partialScore="28.676248709497358">
+               <SimplePredicate field="housing" operator="equal" value="rent"/>
+            </Attribute>
+            <Attribute partialScore="26.997720538857422">
+               <SimplePredicate field="housing" operator="equal" value="for free"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="housing" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="housing" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="existing_credits" reasonCode="RC_existing_credits">
+            <Attribute partialScore="40.63695237957727">
+               <SimplePredicate field="existing_credits" operator="lessThan" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="35.03524630486518">
+               <SimplePredicate field="existing_credits" operator="greaterOrEqual" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="existing_credits" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="existing_credits" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="job" reasonCode="RC_job">
+            <Attribute partialScore="35.962681121151626">
+               <SimplePredicate field="job" operator="equal" value="unskilled resident"/>
+            </Attribute>
+            <Attribute partialScore="38.00951150515938">
+               <SimplePredicate field="job" operator="equal" value="skilled"/>
+            </Attribute>
+            <Attribute partialScore="43.84376029263437">
+               <SimpleSetPredicate field="job" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>unemp/unskilled non res</Value>
+                     <Value>high qualif/self emp/mgmt</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="job" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="job" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="num_dependents" reasonCode="RC_num_dependents">
+            <Attribute partialScore="38.650356340619346">
+               <SimplePredicate field="num_dependents" operator="lessThan" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="38.55973684095361">
+               <SimplePredicate field="num_dependents" operator="greaterOrEqual" value="1.50"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="num_dependents" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="num_dependents" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="own_telephone" reasonCode="RC_own_telephone">
+            <Attribute partialScore="43.81631230766383">
+               <SimplePredicate field="own_telephone" operator="equal" value="yes"/>
+            </Attribute>
+            <Attribute partialScore="35.23908524311137">
+               <SimplePredicate field="own_telephone" operator="equal" value="none"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="own_telephone" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="own_telephone" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="foreign_worker" reasonCode="RC_foreign_worker">
+            <Attribute partialScore="38.636353696727106">
+               <SimpleSetPredicate field="foreign_worker" booleanOperator="isIn">
+                  <Array type="string">
+                     <Value>no</Value>
+                     <Value>yes</Value>
+                  </Array>
+               </SimpleSetPredicate>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="foreign_worker" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="38.636353696727106">
+               <SimplePredicate field="foreign_worker" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+      </Characteristics>
+   </Scorecard>
+</PMML>

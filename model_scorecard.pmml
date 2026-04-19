@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<PMML xmlns="http://www.dmg.org/PMML-4_4" version="4.4">
+   <Header copyright="Optbinning User">
+      <Timestamp>2026-04-19T06:11:48</Timestamp>
+   </Header>
+   <DataDictionary numberOfFields="3">
+      <DataField name="shape" optype="categorical" dataType="string"/>
+      <DataField name="color" optype="categorical" dataType="string"/>
+      <DataField name="value" optype="continuous" dataType="double"/>
+   </DataDictionary>
+   <Scorecard modelName="OptbinningScorecard" functionName="regression" initialScore="0" useReasonCodes="true" reasonCodeAlgorithm="pointsAbove">
+      <MiningSchema>
+         <MiningField name="shape"/>
+         <MiningField name="color"/>
+         <MiningField name="value"/>
+      </MiningSchema>
+      <Characteristics>
+         <Characteristic name="shape" reasonCode="RC_shape">
+            <Attribute partialScore="-0.46537960254910693">
+               <SimplePredicate field="shape" operator="equal" value="Triangle' 'Square"/>
+            </Attribute>
+            <Attribute partialScore="0.562881884047797">
+               <SimplePredicate field="shape" operator="equal" value="Circle"/>
+            </Attribute>
+            <Attribute partialScore="-0.0">
+               <SimplePredicate field="shape" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="-0.0">
+               <SimplePredicate field="shape" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="color" reasonCode="RC_color">
+            <Attribute partialScore="-0.1092796725996317">
+               <SimplePredicate field="color" operator="equal" value="Red"/>
+            </Attribute>
+            <Attribute partialScore="0.07753516162462887">
+               <SimplePredicate field="color" operator="equal" value="Blue' 'Green"/>
+            </Attribute>
+            <Attribute partialScore="-0.0">
+               <SimplePredicate field="color" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="-0.0">
+               <SimplePredicate field="color" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+         <Characteristic name="value" reasonCode="RC_value">
+            <Attribute partialScore="0.0">
+               <SimplePredicate field="value" operator="lessThan" value="inf"/>
+            </Attribute>
+            <Attribute partialScore="0.0">
+               <SimplePredicate field="value" operator="equal" value="special"/>
+            </Attribute>
+            <Attribute partialScore="0.0">
+               <SimplePredicate field="value" operator="isMissing"/>
+            </Attribute>
+         </Characteristic>
+      </Characteristics>
+   </Scorecard>
+</PMML>
