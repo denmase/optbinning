@@ -537,7 +537,7 @@ class Scorecard(Base, BaseEstimator):
                 sbin = row["Bin"]
                 points = row["Points"]
                 
-                # Logic parsing bin (Sama seperti versi sebelumnya)
+                # Logic parsing bin (Same as previous version)
                 if sbin == "Missing":
                     cond = f"{var} IS NULL"
                 elif sbin == "Special":
@@ -570,7 +570,7 @@ class Scorecard(Base, BaseEstimator):
             case_segments.append(f"      ELSE 0 \n    END AS {col_name},")
             sql_lines.append("\n".join(case_segments))
     
-        # Hapus koma terakhir di kolom terakhir CTE
+        # Remove trailing comma from last column in CTE
         sql_lines[-1] = sql_lines[-1].rstrip(",")
         sql_lines.append(f"  FROM {table_name}")
         sql_lines.append(")")
@@ -578,14 +578,29 @@ class Scorecard(Base, BaseEstimator):
         # 3. Final Selection & Total Score Calculation
         sql_lines.append("SELECT")
         sql_lines.append("  *,")
-        # Menjumlahkan semua kolom score
+        # Sum all score columns
         total_score_formula = " + ".join(score_columns)
         sql_lines.append(f"  ({total_score_formula}) AS TotalScore")
         sql_lines.append("FROM ScorecardBase;")
     
         return "\n".join(sql_lines)
       
-    def to_pmml(self, X_verify=None, file_path="model_scorecard.pmml"):
+    def to_pmml(self, X_verify=None, file_path=None):
+        """Export scorecard to PMML format.
+        
+        Parameters
+        ----------
+        X_verify : pandas.DataFrame, optional
+            Data for model verification. If provided, a ModelVerification 
+            section will be added to the PMML.
+        file_path : str, optional
+            Path to save the PMML file. If None, only returns the PMML string.
+            
+        Returns
+        -------
+        str or None
+            PMML string if file_path is None, otherwise None.
+        """
         self._check_is_fitted()
         sc_df = self.table()
         variables = sc_df["Variable"].unique()
@@ -598,24 +613,38 @@ class Scorecard(Base, BaseEstimator):
         ET.SubElement(header, "Timestamp").text = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     
         # --- 3. Data Dictionary ---
-        data_dict = ET.SubElement(root, "DataDictionary", numberOfFields=str(len(variables)))
-        for var in variables:
-            # Default ke double, bisa disesuaikan jika tahu tipe data aslinya
-            ET.SubElement(data_dict, "DataField", name=var, optype="continuous", dataType="double")
+        # Get selected variables and their data types from binning_process_
+        selected_variables = self.binning_process_.get_support(names=True)
+        variable_dtypes = self.binning_process_._variable_dtypes
+        
+        data_dict = ET.SubElement(root, "DataDictionary", numberOfFields=str(len(selected_variables)))
+        for var in selected_variables:
+            # Determine data type based on information from binning_process
+            var_dtype = variable_dtypes.get(var, "numerical")
+            
+            if var_dtype == "categorical":
+                optype = "categorical"
+                dataType = "string"
+            else:
+                # Default to numerical/continuous
+                optype = "continuous"
+                dataType = "double"
+            
+            ET.SubElement(data_dict, "DataField", name=var, optype=optype, dataType=dataType)
     
         # --- 4. Scorecard Setup ---
-        # Intercept di optbinning = initialScore di PMML
+        # Intercept in optbinning = initialScore in PMML
         initial_score = str(self.intercept_)
         
         # Handle Scaling (Points to Odds, etc)
-        # Jika menggunakan scaling_method, PMML biasanya menggunakan Regression sebagai pembungkus 
-        # atau menaruhnya di elemen Output. Di sini kita asumsikan standard scorecard.
+        # If using scaling_method, PMML usually uses Regression as wrapper 
+        # or places it in Output element. Here we assume standard scorecard.
         scorecard = ET.SubElement(root, "Scorecard", 
                                   modelName="OptbinningScorecard", 
                                   functionName="regression", 
                                   initialScore=initial_score,
                                   useReasonCodes="true",
-                                  reasonCodeAlgorithm="pointsAbove") # atau pointsBelow
+                                  reasonCodeAlgorithm="pointsAbove") # or pointsBelow
     
         # Mining Schema
         mining_schema = ET.SubElement(scorecard, "MiningSchema")
@@ -625,12 +654,12 @@ class Scorecard(Base, BaseEstimator):
         # --- 5. Characteristics ---
         characteristics = ET.SubElement(scorecard, "Characteristics")
     
-        # Regex untuk parsing interval: [low, high)
-        # Mendukung: integer, float, scientific notation, inf
+        # Regex for parsing intervals: [low, high)
+        # Supports: integer, float, scientific notation, inf
         num_pattern = r"([\[\(\]])\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|-?inf)\s*,\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|-?inf)\s*([\]\)])"
     
         for var in variables:
-            # Reason Code biasanya menggunakan nama variabel jika tidak didefinisikan
+            # Reason Code typically uses variable name if not defined
             char = ET.SubElement(characteristics, "Characteristic", name=var, reasonCode=f"RC_{var}")
             var_data = sc_df[sc_df["Variable"] == var]
             
@@ -644,22 +673,82 @@ class Scorecard(Base, BaseEstimator):
                 
                 # Logic: Special
                 elif sbin == "Special":
-                    # Jika ada daftar nilai spesial di binning_process
+                    # If there is a list of special values in binning_process
                     specials = self.binning_process_.special_codes
-                    if specials:
-                        vals = " ".join([f'"{x}"' for x in specials])
-                        ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIncluded").text = f"<Array type='string'>{vals}</Array>"
+                    if specials and var in specials:
+                        spec_vals = specials[var]
+                        # If only one special value, use SimplePredicate
+                        if len(spec_vals) == 1:
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator="equal", value=str(spec_vals[0]))
+                        else:
+                            # Multiple values, use SimpleSetPredicate with isIn
+                            vals = " ".join([f'"{x}"' for x in spec_vals])
+                            array_elem = ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIn")
+                            array_inner = ET.SubElement(array_elem, "Array")
+                            array_inner.set("type", "string")
+                            array_inner.text = vals
                     else:
                         ET.SubElement(attr, "SimplePredicate", field=var, operator="equal", value="special")
     
-                # Logic: Categorical (List/Array)
-                elif "[" in sbin and "," in sbin and not re.search(r'\d', sbin):
-                    # Deteksi sederhana untuk list kategori string
-                    items = sbin.replace("[", "").replace("]", "").split(",")
-                    vals = " ".join([f'"{i.strip()}"' for i in items])
-                    ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIncluded").text = f"<Array type='string'>{vals}</Array>"
+                # Logic: Categorical (List/Array) - e.g., [F], [M], [NYC]
+                elif "[" in sbin and "]" in sbin:
+                    # Check if this is a numerical interval or categorical list
+                    match = re.search(num_pattern, sbin)
+                    if match:
+                        # This is a numerical interval
+                        left_bracket, low, high, right_bracket = match.groups()
+                        
+                        # Case: (-inf, X]
+                        if "-inf" in low:
+                            op = "lessOrEqual" if right_bracket == "]" else "lessThan"
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator=op, value=high)
+                        
+                        # Case: [X, inf)
+                        elif "inf" in high:
+                            op = "greaterOrEqual" if left_bracket == "[" else "greaterThan"
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator=op, value=low)
+                        
+                        # Case: [X, Y)
+                        else:
+                            compound = ET.SubElement(attr, "CompoundPredicate", booleanOperator="and")
+                            op_low = "greaterOrEqual" if left_bracket == "[" else "greaterThan"
+                            op_high = "lessOrEqual" if right_bracket == "]" else "lessThan"
+                            ET.SubElement(compound, "SimplePredicate", field=var, operator=op_low, value=low)
+                            ET.SubElement(compound, "SimplePredicate", field=var, operator=op_high, value=high)
+                    else:
+                        # This is a categorical list, extract values within brackets
+                        # Bin format can be:
+                        # - ['Triangle'] (single value, numpy array repr)
+                        # - ['Green' 'Red'] (multiple values, numpy array repr without comma)
+                        # - [F] or [M] (old format)
+                        items_str = sbin.replace("[", "").replace("]", "")
+                        
+                        # Try parsing as numpy array representation
+                        # If space without comma, split by space
+                        # If comma, split by comma
+                        if "," in items_str:
+                            items = [i.strip().strip("'").strip('"') for i in items_str.split(",")]
+                        else:
+                            # Numpy array format: 'Green' 'Red' (space-separated quoted strings)
+                            items = re.findall(r"'([^']*)'|\"([^\"]*)\"", items_str)
+                            # Flatten tuple results from regex
+                            items = [a if a else b for a, b in items]
+                        
+                        # Filter empty strings
+                        items = [i for i in items if i]
+                        
+                        # If only one value, use SimplePredicate with operator="equal"
+                        if len(items) == 1:
+                            ET.SubElement(attr, "SimplePredicate", field=var, operator="equal", value=items[0])
+                        # If multiple values, use SimpleSetPredicate with isIn
+                        else:
+                            set_pred = ET.SubElement(attr, "SimpleSetPredicate", field=var, booleanOperator="isIn")
+                            array_elem = ET.SubElement(set_pred, "Array")
+                            array_elem.set("type", "string")
+                            for item in items:
+                                ET.SubElement(array_elem, "Value").text = item
     
-                # Logic: Numerical Intervals
+                # Logic: Numerical Intervals (fallback)
                 else:
                     match = re.search(num_pattern, sbin)
                     if match:
@@ -686,9 +775,9 @@ class Scorecard(Base, BaseEstimator):
         # --- 6. Model Verification ---
         if X_verify is not None:
             mv = ET.SubElement(scorecard, "ModelVerification")
-            # Ambil 5 record pertama untuk verifikasi
+            # Take first 5 records for verification
             verify_data = X_verify.head(5)
-            scores = self.score(verify_data) # Prediksi skor dari model asli
+            scores = self.score(verify_data) # Predicted scores from original model
             
             v_fields = ET.SubElement(mv, "VerificationFields")
             for col in verify_data.columns:
@@ -702,13 +791,18 @@ class Scorecard(Base, BaseEstimator):
                     ET.SubElement(row_elem, col).text = str(row[col])
                 ET.SubElement(row_elem, "FinalScore").text = str(scores[i])
     
-        # Save
+        # Save or return
         tree = ET.ElementTree(root)
         # Pretty print hack
         from xml.dom import minidom
         xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent="   ")
-        with open(file_path, "w") as f:
-            f.write(xmlstr)
+        
+        if file_path is not None:
+            with open(file_path, "w") as f:
+                f.write(xmlstr)
+            return None
+        else:
+            return xmlstr
       
     @classmethod
     def load(cls, path):
